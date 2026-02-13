@@ -23,12 +23,16 @@ class BootReceiver : BroadcastReceiver() {
 
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
-                val prefs = module.preferencesRepository.observePreferences().first()
-                if (prefs.notificationsEnabled) {
-                    module.notificationScheduler.scheduleForToday(
-                        prefs.wakeTime, prefs.sleepTime, prefs.intervalMinutes
-                    )
+                withTimeout(8_000) {
+                    val prefs = module.preferencesRepository.observePreferences().first()
+                    if (prefs.notificationsEnabled) {
+                        module.notificationScheduler.scheduleForToday(
+                            prefs.wakeTime, prefs.sleepTime, prefs.intervalMinutes
+                        )
+                    }
                 }
+            } catch (_: Exception) {
+                // Timeout or failure — don't crash; alarms will be rescheduled next boot or app launch
             } finally {
                 pending.finish()
             }

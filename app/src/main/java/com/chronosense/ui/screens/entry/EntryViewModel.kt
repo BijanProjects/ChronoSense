@@ -57,7 +57,11 @@ class EntryViewModel(
     }
 
     fun updateDescription(text: String) {
-        _description.value = text
+        _description.value = text.take(MAX_DESCRIPTION_LENGTH)
+    }
+
+    companion object {
+        const val MAX_DESCRIPTION_LENGTH = 5000
     }
 
     fun updateMood(mood: Mood?) {

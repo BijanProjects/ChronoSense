@@ -34,6 +34,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "chronosense_database"
                 )
+                // TODO: Replace with proper migration strategy before production.
+                // fallbackToDestructiveMigration silently wipes all data on schema changes.
                 .fallbackToDestructiveMigration()
                 .build()
                 .also { INSTANCE = it }

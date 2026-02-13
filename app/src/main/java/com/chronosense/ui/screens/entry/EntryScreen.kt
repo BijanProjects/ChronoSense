@@ -36,9 +36,9 @@ fun EntryScreen(
         factory = EntryViewModel.Factory(
             repository = ChronoSenseApp.instance.module.journalRepository,
             saveEntryUseCase = ChronoSenseApp.instance.module.saveEntryUseCase,
-            date = LocalDate.parse(date),
-            startTime = LocalTime.parse(startTime),
-            endTime = LocalTime.parse(endTime)
+            date = runCatching { LocalDate.parse(date) }.getOrElse { LocalDate.now() },
+            startTime = runCatching { LocalTime.parse(startTime) }.getOrElse { LocalTime.now() },
+            endTime = runCatching { LocalTime.parse(endTime) }.getOrElse { LocalTime.now().plusHours(1) }
         )
     )
 ) {
