@@ -7,7 +7,6 @@ plugins {
 android {
     namespace = "com.chronosense.chronosense"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sqflite/sqflite.dart';
 import 'package:chronosense/data/local/app_database.dart';
 
@@ -9,6 +10,7 @@ class JournalDao {
   Future<Database> get _db => AppDatabase.instance.database;
 
   Future<List<Map<String, dynamic>>> getEntriesForDate(String date) async {
+    if (kIsWeb) return [];
     final db = await _db;
     return db.query(
       'journal_entries',
@@ -22,6 +24,7 @@ class JournalDao {
     String startDate,
     String endDate,
   ) async {
+    if (kIsWeb) return [];
     final db = await _db;
     return db.query(
       'journal_entries',
@@ -32,6 +35,7 @@ class JournalDao {
   }
 
   Future<Map<String, dynamic>?> getEntryById(int id) async {
+    if (kIsWeb) return null;
     final db = await _db;
     final results = await db.query(
       'journal_entries',
@@ -46,6 +50,7 @@ class JournalDao {
     String date,
     String startTime,
   ) async {
+    if (kIsWeb) return null;
     final db = await _db;
     final results = await db.query(
       'journal_entries',
@@ -57,6 +62,7 @@ class JournalDao {
   }
 
   Future<int> upsertEntry(Map<String, dynamic> entry) async {
+    if (kIsWeb) return -1;
     final db = await _db;
     // Try to find existing entry for the same slot
     final existing = await getEntryBySlot(
@@ -84,6 +90,7 @@ class JournalDao {
   }
 
   Future<void> deleteEntry(int id) async {
+    if (kIsWeb) return;
     final db = await _db;
     await db.delete(
       'journal_entries',
@@ -96,6 +103,7 @@ class JournalDao {
     String startDate,
     String endDate,
   ) async {
+    if (kIsWeb) return 0;
     final db = await _db;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as cnt FROM journal_entries '
