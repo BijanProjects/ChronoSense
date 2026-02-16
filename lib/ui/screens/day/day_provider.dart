@@ -15,6 +15,8 @@ class DayUiState {
   final int activeSlotIndex;
   final bool isToday;
   final bool isLoading;
+  final DayUiState? prevDay;
+  final DayUiState? nextDay;
 
   DayUiState({
     this.formattedDate = '',
@@ -26,6 +28,8 @@ class DayUiState {
     this.activeSlotIndex = -1,
     this.isToday = true,
     this.isLoading = true,
+    this.prevDay,
+    this.nextDay,
   }) : date = date ?? DateTime.now();
 
   DayUiState copyWith({
@@ -49,6 +53,8 @@ class DayUiState {
       activeSlotIndex: activeSlotIndex ?? this.activeSlotIndex,
       isToday: isToday ?? this.isToday,
       isLoading: isLoading ?? this.isLoading,
+      prevDay: prevDay,
+      nextDay: nextDay,
     );
   }
 }
@@ -66,14 +72,19 @@ class DayNotifier extends StateNotifier<DayUiState> {
     ref.listen<int>(refreshSignalProvider, (_, __) => _load());
   }
 
-  Future<void> _load() async {
-    state = state.copyWith(isLoading: true);
+  static const _months = [
+    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  static const _weekdays = [
+    '', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
+  ];
 
-    final prefsRepo = ref.read(preferencesRepositoryProvider);
-    final journalRepo = ref.read(journalRepositoryProvider);
-    final prefs = await prefsRepo.getPreferences();
-    final entries = await journalRepo.getEntriesForDate(_selectedDate);
-
+  DayUiState _buildDayState({
+    required UserPreferences prefs,
+    required List<JournalEntry> entries,
+    required DateTime date,
+  }) {
     final slots = IntervalEngine.generateSlots(
       prefs: prefs,
       entries: entries,
@@ -81,11 +92,7 @@ class DayNotifier extends StateNotifier<DayUiState> {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final selected = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-    );
+    final selected = DateTime(date.year, date.month, date.day);
     final isToday = selected == today;
     final activeIndex = isToday
         ? IntervalEngine.findActiveSlotIndex(slots, now)
@@ -95,7 +102,6 @@ class DayNotifier extends StateNotifier<DayUiState> {
     final total = slots.length;
     final rate = total > 0 ? filled / total : 0.0;
 
-    // Format date
     final diff = selected.difference(today).inDays;
     String formatted;
     if (diff == 0) {
@@ -105,17 +111,13 @@ class DayNotifier extends StateNotifier<DayUiState> {
     } else if (diff == 1) {
       formatted = 'Tomorrow';
     } else {
-      final months = [
-        '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-      ];
-      final weekdays = ['', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      formatted = '${weekdays[_selectedDate.weekday]}, ${months[_selectedDate.month]} ${_selectedDate.day}';
+      formatted =
+          '${_weekdays[date.weekday]}, ${_months[date.month]} ${date.day}';
     }
 
-    state = DayUiState(
+    return DayUiState(
       formattedDate: formatted,
-      date: _selectedDate,
+      date: date,
       timeSlots: slots,
       completionRate: rate,
       filledCount: filled,
@@ -124,6 +126,58 @@ class DayNotifier extends StateNotifier<DayUiState> {
       isToday: isToday,
       isLoading: false,
     );
+  }
+
+  Future<void> _load() async {
+    state = state.copyWith(isLoading: true);
+
+    final prefsRepo = ref.read(preferencesRepositoryProvider);
+    final journalRepo = ref.read(journalRepositoryProvider);
+    final prefs = await prefsRepo.getPreferences();
+
+    final prevDate = _selectedDate.subtract(const Duration(days: 1));
+    final nextDate = _selectedDate.add(const Duration(days: 1));
+
+    final results = await Future.wait([
+      journalRepo.getEntriesForDate(prevDate),
+      journalRepo.getEntriesForDate(_selectedDate),
+      journalRepo.getEntriesForDate(nextDate),
+    ]);
+
+    final prev = _buildDayState(
+        prefs: prefs, entries: results[0], date: prevDate);
+    final current = _buildDayState(
+        prefs: prefs, entries: results[1], date: _selectedDate);
+    final next = _buildDayState(
+        prefs: prefs, entries: results[2], date: nextDate);
+
+    state = DayUiState(
+      formattedDate: current.formattedDate,
+      date: current.date,
+      timeSlots: current.timeSlots,
+      completionRate: current.completionRate,
+      filledCount: current.filledCount,
+      totalCount: current.totalCount,
+      activeSlotIndex: current.activeSlotIndex,
+      isToday: current.isToday,
+      isLoading: false,
+      prevDay: prev,
+      nextDay: next,
+    );
+  }
+
+  /// Instantly swap state to pre-loaded adjacent data for seamless animation.
+  void navigateInstant({required bool forward}) {
+    final adjacent = forward ? state.nextDay : state.prevDay;
+    if (forward) {
+      _selectedDate = _selectedDate.add(const Duration(days: 1));
+    } else {
+      _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+    }
+    if (adjacent != null) {
+      state = adjacent;
+    }
+    _load();
   }
 
   void previousDay() {

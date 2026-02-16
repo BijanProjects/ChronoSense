@@ -17,7 +17,7 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _settleController;
   double _dragOffset = 0;
-  bool _isAnimating = false;
+  bool _settling = false;
 
   @override
   void initState() {
@@ -31,77 +31,86 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
     super.dispose();
   }
 
-  /// Smoothly animate [_dragOffset] from [from] to [to].
-  Future<void> _animateOffset(double from, double to,
-      {Curve curve = Curves.easeOutCubic}) async {
+  // ── Navigation ──
+
+  void _navigateMonth({required bool forward}) {
+    if (_settling) {
+      _settling = false;
+      _settleController.stop();
+    }
     final screenW = MediaQuery.of(context).size.width;
-    final distance = (to - from).abs();
-    final ms = (300 * distance / screenW).clamp(100, 350).toInt();
+    _animateTo(forward ? -screenW : screenW, onComplete: () {
+      ref.read(monthProvider.notifier).navigateInstant(forward: forward);
+      setState(() => _dragOffset = 0);
+    });
+  }
+
+  // ── Drag handling ──
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    if (_settling) {
+      _settling = false;
+      _settleController.stop();
+    }
+    setState(() => _dragOffset += details.delta.dx);
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    final screenW = MediaQuery.of(context).size.width;
+    final threshold = screenW * 0.25;
+    final shouldCommit =
+        velocity.abs() > 300 || _dragOffset.abs() > threshold;
+
+    if (shouldCommit) {
+      final forward =
+          velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
+      _animateTo(forward ? -screenW : screenW, onComplete: () {
+        ref.read(monthProvider.notifier).navigateInstant(forward: forward);
+        setState(() => _dragOffset = 0);
+      });
+    } else {
+      _animateTo(0);
+    }
+  }
+
+  /// Animate [_dragOffset] to [target]. Calls [onComplete] on finish
+  /// unless the animation was interrupted by a new drag.
+  Future<void> _animateTo(double target, {VoidCallback? onComplete}) async {
+    final from = _dragOffset;
+    if ((from - target).abs() < 1) {
+      setState(() => _dragOffset = target);
+      onComplete?.call();
+      return;
+    }
+
+    _settling = true;
+    final screenW = MediaQuery.of(context).size.width;
+    final distance = (target - from).abs();
+    final ms = (250 * distance / screenW).clamp(100, 300).toInt();
     _settleController.duration = Duration(milliseconds: ms);
 
-    final anim = Tween<double>(begin: from, end: to).animate(
-      CurvedAnimation(parent: _settleController, curve: curve),
+    final anim = Tween<double>(begin: from, end: target).animate(
+      CurvedAnimation(parent: _settleController, curve: Curves.easeOutCubic),
     );
-    void listener() => setState(() => _dragOffset = anim.value);
+    void listener() {
+      if (!mounted) return;
+      setState(() => _dragOffset = anim.value);
+    }
+
     _settleController.addListener(listener);
     _settleController.reset();
     await _settleController.forward();
     _settleController.removeListener(listener);
-    _dragOffset = to;
-  }
 
-  /// Arrow-button navigation (full slide out → change → slide in).
-  Future<void> _swipeNavigate({required bool forward}) async {
-    if (_isAnimating) return;
-    _isAnimating = true;
-
-    final screenW = MediaQuery.of(context).size.width;
-    final notifier = ref.read(monthProvider.notifier);
-
-    await _animateOffset(0, forward ? -screenW : screenW,
-        curve: Curves.easeInCubic);
-
-    if (forward) {
-      notifier.nextMonth();
-    } else {
-      notifier.previousMonth();
+    if (mounted && _settling) {
+      setState(() => _dragOffset = target);
+      onComplete?.call();
     }
-
-    setState(() => _dragOffset = forward ? screenW : -screenW);
-    await _animateOffset(_dragOffset, 0);
-
-    _isAnimating = false;
+    _settling = false;
   }
 
-  /// Called when the user lifts their finger after dragging.
-  void _onDragEnd(DragEndDetails details) async {
-    if (_isAnimating) return;
-    _isAnimating = true;
-
-    final velocity = details.primaryVelocity ?? 0;
-    final screenW = MediaQuery.of(context).size.width;
-    final threshold = screenW * 0.25;
-    final shouldCommit = velocity.abs() > 300 || _dragOffset.abs() > threshold;
-
-    if (shouldCommit) {
-      final forward = velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
-      await _animateOffset(_dragOffset, forward ? -screenW : screenW);
-
-      final notifier = ref.read(monthProvider.notifier);
-      if (forward) {
-        notifier.nextMonth();
-      } else {
-        notifier.previousMonth();
-      }
-
-      setState(() => _dragOffset = forward ? screenW : -screenW);
-      await _animateOffset(_dragOffset, 0);
-    } else {
-      await _animateOffset(_dragOffset, 0);
-    }
-
-    _isAnimating = false;
-  }
+  // ── Build ──
 
   @override
   Widget build(BuildContext context) {
@@ -110,111 +119,159 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
     final cs = theme.colorScheme;
 
     return GestureDetector(
-      onHorizontalDragUpdate: _isAnimating
-          ? null
-          : (details) => setState(() => _dragOffset += details.delta.dx),
-      onHorizontalDragEnd: _isAnimating ? null : _onDragEnd,
+      onHorizontalDragUpdate: _onDragUpdate,
+      onHorizontalDragEnd: _onDragEnd,
       behavior: HitTestBehavior.translucent,
-      child: ClipRect(
-        child: Transform.translate(
-          offset: Offset(_dragOffset, 0),
-          child: SafeArea(
-      child: state.isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            return ClipRect(
+              child: Stack(
                 children: [
-                  const SizedBox(height: Spacing.lg),
-
-                  // ── Header ──
-                  Text(
-                    'Monthly Overview',
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      color: cs.primary,
-                      fontWeight: FontWeight.bold,
+                  // Previous month
+                  if (state.prevMonth != null)
+                    _positioned(
+                      offset: _dragOffset - w,
+                      width: w,
+                      child: _buildMonthPanel(
+                          state.prevMonth!, theme, cs),
                     ),
+                  // Current month
+                  _positioned(
+                    offset: _dragOffset,
+                    width: w,
+                    child: _buildMonthPanel(
+                        state, theme, cs, isCenter: true),
                   ),
-                  const SizedBox(height: Spacing.xl),
-
-                  // ── Month navigation ──
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chevron_left),
-                        onPressed: () => _swipeNavigate(forward: false),
-                      ),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        transitionBuilder: (child, anim) => FadeTransition(
-                          opacity: anim,
-                          child: child,
-                        ),
-                        child: Text(
-                          state.formattedMonth,
-                          key: ValueKey(state.formattedMonth),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.chevron_right),
-                        onPressed: () => _swipeNavigate(forward: true),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.lg),
-
-                  // ── Calendar grid ──
-                  _CalendarGrid(
-                    month: state.month,
-                    daysWithEntries: state.insight?.daysWithEntries ?? {},
-                    onDayTap: widget.onDayTap,
-                  ),
-                  const SizedBox(height: Spacing.xxl),
-
-                  if (state.insight != null && state.insight!.totalEntries > 0) ...[
-                    // ── Summary stats ──
-                    _SummaryCard(insight: state.insight!),
-                    const SizedBox(height: Spacing.xl),
-
-                    // ── Mood distribution ──
-                    if (state.insight!.moodFrequency.isNotEmpty) ...[
-                      Text(
-                        'Mood Distribution',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.md),
-                      _MoodDistribution(moods: state.insight!.moodFrequency),
-                      const SizedBox(height: Spacing.xl),
-                    ],
-
-                    // ── Activity chart ──
-                    if (state.insight!.tagFrequency.isNotEmpty) ...[
-                      Text(
-                        'Most Repeated Activities',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.md),
-                      _ActivityChart(tags: state.insight!.tagFrequency),
-                    ],
-                  ] else
-                    _buildEmptyState(context),
-
-                  const SizedBox(height: Spacing.xxxl),
+                  // Next month
+                  if (state.nextMonth != null)
+                    _positioned(
+                      offset: _dragOffset + w,
+                      width: w,
+                      child: _buildMonthPanel(
+                          state.nextMonth!, theme, cs),
+                    ),
                 ],
               ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _positioned({
+    required double offset,
+    required double width,
+    required Widget child,
+  }) {
+    return Positioned(
+      left: offset,
+      top: 0,
+      bottom: 0,
+      width: width,
+      child: child,
+    );
+  }
+
+  Widget _buildMonthPanel(
+    MonthUiState monthState,
+    ThemeData theme,
+    ColorScheme cs, {
+    bool isCenter = false,
+  }) {
+    if (monthState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: Spacing.lg),
+
+          // ── Header ──
+          Text(
+            'Monthly Overview',
+            style: theme.textTheme.headlineLarge?.copyWith(
+              color: cs.primary,
+              fontWeight: FontWeight.bold,
             ),
-    ),
-    ),
-    ),
+          ),
+          const SizedBox(height: Spacing.xl),
+
+          // ── Month navigation ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: isCenter
+                    ? () => _navigateMonth(forward: false)
+                    : null,
+              ),
+              Text(
+                monthState.formattedMonth,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: isCenter
+                    ? () => _navigateMonth(forward: true)
+                    : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.lg),
+
+          // ── Calendar grid ──
+          _CalendarGrid(
+            month: monthState.month,
+            daysWithEntries:
+                monthState.insight?.daysWithEntries ?? {},
+            onDayTap: isCenter ? widget.onDayTap : null,
+          ),
+          const SizedBox(height: Spacing.xxl),
+
+          if (monthState.insight != null &&
+              monthState.insight!.totalEntries > 0) ...[
+            _SummaryCard(insight: monthState.insight!),
+            const SizedBox(height: Spacing.xl),
+
+            if (monthState.insight!.moodFrequency.isNotEmpty) ...[
+              Text(
+                'Mood Distribution',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: Spacing.md),
+              _MoodDistribution(
+                  moods: monthState.insight!.moodFrequency),
+              const SizedBox(height: Spacing.xl),
+            ],
+
+            if (monthState.insight!.tagFrequency.isNotEmpty) ...[
+              Text(
+                'Most Repeated Activities',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: Spacing.md),
+              _ActivityChart(
+                  tags: monthState.insight!.tagFrequency),
+            ],
+          ] else
+            _buildEmptyState(context),
+
+          const SizedBox(height: Spacing.xxxl),
+        ],
+      ),
     );
   }
 

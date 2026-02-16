@@ -9,12 +9,16 @@ class MonthUiState {
   final String formattedMonth;
   final MonthInsight? insight;
   final bool isLoading;
+  final MonthUiState? prevMonth;
+  final MonthUiState? nextMonth;
 
   MonthUiState({
     DateTime? month,
     this.formattedMonth = '',
     this.insight,
     this.isLoading = true,
+    this.prevMonth,
+    this.nextMonth,
   }) : month = month ?? DateTime.now();
 
   MonthUiState copyWith({
@@ -28,6 +32,8 @@ class MonthUiState {
       formattedMonth: formattedMonth ?? this.formattedMonth,
       insight: insight ?? this.insight,
       isLoading: isLoading ?? this.isLoading,
+      prevMonth: prevMonth,
+      nextMonth: nextMonth,
     );
   }
 }
@@ -51,32 +57,75 @@ class MonthNotifier extends StateNotifier<MonthUiState> {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
+  MonthUiState _buildMonthState({
+    required UserPreferences prefs,
+    required List<JournalEntry> entries,
+    required DateTime month,
+  }) {
+    final insight = MonthInsight.aggregate(
+      entries: entries,
+      totalSlotsPerDay: prefs.totalSlots,
+    );
+    final formatted = '${_months[month.month]} ${month.year}';
+    return MonthUiState(
+      month: month,
+      formattedMonth: formatted,
+      insight: insight,
+      isLoading: false,
+    );
+  }
+
   Future<void> _load() async {
     state = state.copyWith(isLoading: true);
 
     final prefsRepo = ref.read(preferencesRepositoryProvider);
     final journalRepo = ref.read(journalRepositoryProvider);
-
     final prefs = await prefsRepo.getPreferences();
 
-    // Date range for the month
-    final start = _currentMonth;
-    final end = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
-    final entries = await journalRepo.getEntriesForDateRange(start, end);
+    final prevM = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
+    final nextM = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
 
-    final insight = MonthInsight.aggregate(
-      entries: entries,
-      totalSlotsPerDay: prefs.totalSlots,
-    );
+    final results = await Future.wait([
+      journalRepo.getEntriesForDateRange(
+          prevM, DateTime(prevM.year, prevM.month + 1, 0)),
+      journalRepo.getEntriesForDateRange(
+          _currentMonth,
+          DateTime(_currentMonth.year, _currentMonth.month + 1, 0)),
+      journalRepo.getEntriesForDateRange(
+          nextM, DateTime(nextM.year, nextM.month + 1, 0)),
+    ]);
 
-    final formatted = '${_months[_currentMonth.month]} ${_currentMonth.year}';
+    final prev =
+        _buildMonthState(prefs: prefs, entries: results[0], month: prevM);
+    final current = _buildMonthState(
+        prefs: prefs, entries: results[1], month: _currentMonth);
+    final next =
+        _buildMonthState(prefs: prefs, entries: results[2], month: nextM);
 
     state = MonthUiState(
-      month: _currentMonth,
-      formattedMonth: formatted,
-      insight: insight,
+      month: current.month,
+      formattedMonth: current.formattedMonth,
+      insight: current.insight,
       isLoading: false,
+      prevMonth: prev,
+      nextMonth: next,
     );
+  }
+
+  /// Instantly swap state to pre-loaded adjacent data for seamless animation.
+  void navigateInstant({required bool forward}) {
+    final adjacent = forward ? state.nextMonth : state.prevMonth;
+    if (forward) {
+      _currentMonth =
+          DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
+    } else {
+      _currentMonth =
+          DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
+    }
+    if (adjacent != null) {
+      state = adjacent;
+    }
+    _load();
   }
 
   void previousMonth() {

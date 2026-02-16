@@ -20,7 +20,7 @@ class _DayScreenState extends ConsumerState<DayScreen>
   bool _hasAutoScrolled = false;
   late AnimationController _settleController;
   double _dragOffset = 0;
-  bool _isAnimating = false;
+  bool _settling = false;
 
   @override
   void initState() {
@@ -35,78 +35,85 @@ class _DayScreenState extends ConsumerState<DayScreen>
     super.dispose();
   }
 
-  /// Smoothly animate [_dragOffset] from [from] to [to].
-  Future<void> _animateOffset(double from, double to,
-      {Curve curve = Curves.easeOutCubic}) async {
+  // ── Navigation ──
+
+  void _navigateDay({required bool forward}) {
+    if (_settling) {
+      _settling = false;
+      _settleController.stop();
+    }
     final screenW = MediaQuery.of(context).size.width;
-    final distance = (to - from).abs();
-    final ms = (300 * distance / screenW).clamp(100, 350).toInt();
+    _animateTo(forward ? -screenW : screenW, onComplete: () {
+      ref.read(dayProvider.notifier).navigateInstant(forward: forward);
+      setState(() => _dragOffset = 0);
+      _hasAutoScrolled = false;
+    });
+  }
+
+  // ── Drag handling ──
+
+  void _onDragUpdate(DragUpdateDetails details) {
+    if (_settling) {
+      _settling = false;
+      _settleController.stop();
+    }
+    setState(() => _dragOffset += details.delta.dx);
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    final screenW = MediaQuery.of(context).size.width;
+    final threshold = screenW * 0.25;
+    final shouldCommit =
+        velocity.abs() > 300 || _dragOffset.abs() > threshold;
+
+    if (shouldCommit) {
+      final forward =
+          velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
+      _animateTo(forward ? -screenW : screenW, onComplete: () {
+        ref.read(dayProvider.notifier).navigateInstant(forward: forward);
+        setState(() => _dragOffset = 0);
+        _hasAutoScrolled = false;
+      });
+    } else {
+      _animateTo(0);
+    }
+  }
+
+  /// Animate [_dragOffset] to [target]. Calls [onComplete] on finish
+  /// unless the animation was interrupted by a new drag.
+  Future<void> _animateTo(double target, {VoidCallback? onComplete}) async {
+    final from = _dragOffset;
+    if ((from - target).abs() < 1) {
+      setState(() => _dragOffset = target);
+      onComplete?.call();
+      return;
+    }
+
+    _settling = true;
+    final screenW = MediaQuery.of(context).size.width;
+    final distance = (target - from).abs();
+    final ms = (250 * distance / screenW).clamp(100, 300).toInt();
     _settleController.duration = Duration(milliseconds: ms);
 
-    final anim = Tween<double>(begin: from, end: to).animate(
-      CurvedAnimation(parent: _settleController, curve: curve),
+    final anim = Tween<double>(begin: from, end: target).animate(
+      CurvedAnimation(parent: _settleController, curve: Curves.easeOutCubic),
     );
-    void listener() => setState(() => _dragOffset = anim.value);
+    void listener() {
+      if (!mounted) return;
+      setState(() => _dragOffset = anim.value);
+    }
+
     _settleController.addListener(listener);
     _settleController.reset();
     await _settleController.forward();
     _settleController.removeListener(listener);
-    _dragOffset = to;
-  }
 
-  /// Arrow-button navigation (full slide out → change → slide in).
-  Future<void> _swipeNavigate({required bool forward}) async {
-    if (_isAnimating) return;
-    _isAnimating = true;
-
-    final screenW = MediaQuery.of(context).size.width;
-    final notifier = ref.read(dayProvider.notifier);
-
-    await _animateOffset(0, forward ? -screenW : screenW,
-        curve: Curves.easeInCubic);
-
-    if (forward) {
-      notifier.nextDay();
-    } else {
-      notifier.previousDay();
+    if (mounted && _settling) {
+      setState(() => _dragOffset = target);
+      onComplete?.call();
     }
-
-    setState(() => _dragOffset = forward ? screenW : -screenW);
-    await _animateOffset(_dragOffset, 0);
-
-    _isAnimating = false;
-    _hasAutoScrolled = false;
-  }
-
-  /// Called when the user lifts their finger after dragging.
-  void _onDragEnd(DragEndDetails details) async {
-    if (_isAnimating) return;
-    _isAnimating = true;
-
-    final velocity = details.primaryVelocity ?? 0;
-    final screenW = MediaQuery.of(context).size.width;
-    final threshold = screenW * 0.25;
-    final shouldCommit = velocity.abs() > 300 || _dragOffset.abs() > threshold;
-
-    if (shouldCommit) {
-      final forward = velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
-      await _animateOffset(_dragOffset, forward ? -screenW : screenW);
-
-      final notifier = ref.read(dayProvider.notifier);
-      if (forward) {
-        notifier.nextDay();
-      } else {
-        notifier.previousDay();
-      }
-
-      setState(() => _dragOffset = forward ? screenW : -screenW);
-      await _animateOffset(_dragOffset, 0);
-      _hasAutoScrolled = false;
-    } else {
-      await _animateOffset(_dragOffset, 0);
-    }
-
-    _isAnimating = false;
+    _settling = false;
   }
 
   void _autoScrollToActiveSlot(DayUiState state) {
@@ -114,7 +121,7 @@ class _DayScreenState extends ConsumerState<DayScreen>
       _hasAutoScrolled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
-          final target = state.activeSlotIndex * 88.0; // approx card height
+          final target = state.activeSlotIndex * 88.0;
           _scrollController.animateTo(
             target.clamp(0.0, _scrollController.position.maxScrollExtent),
             duration: const Duration(milliseconds: 600),
@@ -125,6 +132,8 @@ class _DayScreenState extends ConsumerState<DayScreen>
     }
   }
 
+  // ── Build ──
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dayProvider);
@@ -133,20 +142,11 @@ class _DayScreenState extends ConsumerState<DayScreen>
 
     _autoScrollToActiveSlot(state);
 
-    return GestureDetector(
-      onHorizontalDragUpdate: _isAnimating
-          ? null
-          : (details) => setState(() => _dragOffset += details.delta.dx),
-      onHorizontalDragEnd: _isAnimating ? null : _onDragEnd,
-      behavior: HitTestBehavior.translucent,
-      child: ClipRect(
-        child: Transform.translate(
-          offset: Offset(_dragOffset, 0),
-          child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-          // ── Header ──
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header (fixed — does not move with swipe) ──
           Padding(
             padding: const EdgeInsets.fromLTRB(
               Spacing.xl, Spacing.lg, Spacing.xl, Spacing.sm,
@@ -188,132 +188,178 @@ class _DayScreenState extends ConsumerState<DayScreen>
 
           const SizedBox(height: Spacing.md),
 
-          // ── Date navigation row ──
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () => _swipeNavigate(forward: false),
-                  style: IconButton.styleFrom(
-                    foregroundColor: cs.onSurface,
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        transitionBuilder: (child, anim) => FadeTransition(
-                          opacity: anim,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0, 0.3),
-                              end: Offset.zero,
-                            ).animate(CurvedAnimation(
-                              parent: anim,
-                              curve: Curves.easeOutCubic,
-                            )),
-                            child: child,
+          // ── Swipeable 3-panel viewport ──
+          Expanded(
+            child: GestureDetector(
+              onHorizontalDragUpdate: _onDragUpdate,
+              onHorizontalDragEnd: _onDragEnd,
+              behavior: HitTestBehavior.translucent,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  return ClipRect(
+                    child: Stack(
+                      children: [
+                        // Previous day
+                        if (state.prevDay != null)
+                          _positioned(
+                            offset: _dragOffset - w,
+                            width: w,
+                            child: _buildDayPanel(
+                                state.prevDay!, theme, cs),
                           ),
+                        // Current day
+                        _positioned(
+                          offset: _dragOffset,
+                          width: w,
+                          child: _buildDayPanel(
+                              state, theme, cs, isCenter: true),
                         ),
-                        child: Text(
-                          state.formattedDate,
-                          key: ValueKey(state.formattedDate),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        // Next day
+                        if (state.nextDay != null)
+                          _positioned(
+                            offset: _dragOffset + w,
+                            width: w,
+                            child: _buildDayPanel(
+                                state.nextDay!, theme, cs),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                      const SizedBox(height: Spacing.xxs),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(
-                          '${(state.completionRate * 100).round()}% logged',
-                          key: ValueKey(state.completionRate),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () => _swipeNavigate(forward: true),
-                  style: IconButton.styleFrom(
-                    foregroundColor: cs.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Progress bar ──
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Spacing.xl,
-              vertical: Spacing.sm,
-            ),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: state.completionRate),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, _) => ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-                child: LinearProgressIndicator(
-                  value: value,
-                  minHeight: 4,
-                  backgroundColor: cs.surfaceContainerHighest,
-                  valueColor: AlwaysStoppedAnimation(cs.primary),
-                ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
           ),
-
-          const SizedBox(height: Spacing.sm),
-
-          // ── Time slot list ──
-          Expanded(
-            child: state.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : state.timeSlots.isEmpty
-                    ? _buildEmptyState(context)
-                    : ListView.separated(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.lg,
-                          vertical: Spacing.sm,
-                        ),
-                        itemCount: state.timeSlots.length,
-                        separatorBuilder: (_, __) =>
-                            const SizedBox(height: Spacing.sm + 2),
-                        itemBuilder: (context, index) {
-                          final slot = state.timeSlots[index];
-                          return TimeSlotCard(
-                            slot: slot,
-                            index: index,
-                            onTap: () {
-                              final dateStr = TimeUtils.toIsoDate(state.date);
-                              widget.onSlotTap(
-                                dateStr,
-                                slot.startTime,
-                                slot.endTime,
-                              );
-                            },
-                          );
-                        },
-                      ),
-          ),
         ],
       ),
-    ),
-    ),
-    ),
+    );
+  }
+
+  Widget _positioned({
+    required double offset,
+    required double width,
+    required Widget child,
+  }) {
+    return Positioned(
+      left: offset,
+      top: 0,
+      bottom: 0,
+      width: width,
+      child: child,
+    );
+  }
+
+  Widget _buildDayPanel(
+    DayUiState dayState,
+    ThemeData theme,
+    ColorScheme cs, {
+    bool isCenter = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Date navigation row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed:
+                    isCenter ? () => _navigateDay(forward: false) : null,
+                style: IconButton.styleFrom(
+                  foregroundColor: cs.onSurface,
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      dayState.formattedDate,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: Spacing.xxs),
+                    Text(
+                      '${(dayState.completionRate * 100).round()}% logged',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed:
+                    isCenter ? () => _navigateDay(forward: true) : null,
+                style: IconButton.styleFrom(
+                  foregroundColor: cs.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Progress bar
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.xl,
+            vertical: Spacing.sm,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: LinearProgressIndicator(
+              value: dayState.completionRate,
+              minHeight: 4,
+              backgroundColor: cs.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(cs.primary),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: Spacing.sm),
+
+        // Time slot list
+        Expanded(
+          child: dayState.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : dayState.timeSlots.isEmpty
+                  ? _buildEmptyState(context)
+                  : ListView.separated(
+                      controller:
+                          isCenter ? _scrollController : null,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.lg,
+                        vertical: Spacing.sm,
+                      ),
+                      itemCount: dayState.timeSlots.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: Spacing.sm + 2),
+                      itemBuilder: (context, index) {
+                        final slot = dayState.timeSlots[index];
+                        return TimeSlotCard(
+                          slot: slot,
+                          index: index,
+                          onTap: isCenter
+                              ? () {
+                                  final dateStr =
+                                      TimeUtils.toIsoDate(dayState.date);
+                                  widget.onSlotTap(
+                                    dateStr,
+                                    slot.startTime,
+                                    slot.endTime,
+                                  );
+                                }
+                              : () {},
+                        );
+                      },
+                    ),
+        ),
+      ],
     );
   }
 
