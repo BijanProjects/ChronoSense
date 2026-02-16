@@ -67,6 +67,8 @@ class _DayScreenState extends ConsumerState<DayScreen> {
             ),
           ),
 
+          const SizedBox(height: Spacing.md),
+
           // ── Date navigation row ──
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
@@ -100,7 +102,7 @@ class _DayScreenState extends ConsumerState<DayScreen> {
                         child: Text(
                           state.formattedDate,
                           key: ValueKey(state.formattedDate),
-                          style: theme.textTheme.titleMedium?.copyWith(
+                          style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                           textAlign: TextAlign.center,
@@ -213,7 +215,7 @@ class _DayScreenState extends ConsumerState<DayScreen> {
           Text(
             'Set up your waking hours in Settings',
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: cs.onSurfaceVariant,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
         ],

@@ -86,7 +86,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-// ── Premium transition: Fade Through (Material 3 motion) ──
+// ── Tab transition: Fade + Horizontal Slide (matching Kotlin) ──
 Widget _fadeThrough(
   BuildContext context,
   Animation<double> animation,
@@ -96,15 +96,16 @@ Widget _fadeThrough(
   return FadeTransition(
     opacity: CurvedAnimation(
       parent: animation,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
     ),
-    child: ScaleTransition(
-      scale: Tween<double>(begin: 0.92, end: 1.0).animate(
-        CurvedAnimation(
-          parent: animation,
-          curve: const Interval(0.0, 1.0, curve: Curves.easeOutCubic),
-        ),
-      ),
+    child: SlideTransition(
+      position: Tween<Offset>(
+        begin: const Offset(0.03, 0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: animation,
+        curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
+      )),
       child: FadeTransition(
         opacity: Tween<double>(begin: 1.0, end: 0.0).animate(
           CurvedAnimation(
@@ -118,7 +119,7 @@ Widget _fadeThrough(
   );
 }
 
-// ── Premium transition: Shared Axis Z (for entry screen) ──
+// ── Entry screen transition: Fade + Horizontal Slide (matching Kotlin) ──
 Widget _sharedAxisVertical(
   BuildContext context,
   Animation<double> animation,
@@ -127,16 +128,16 @@ Widget _sharedAxisVertical(
 ) {
   return SlideTransition(
     position: Tween<Offset>(
-      begin: const Offset(0, 0.06),
+      begin: const Offset(0.03, 0),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: animation,
-      curve: Curves.easeOutCubic,
+      curve: Curves.easeOut,
     )),
     child: FadeTransition(
       opacity: CurvedAnimation(
         parent: animation,
-        curve: const Interval(0.0, 0.65, curve: Curves.easeOut),
+        curve: const Interval(0.0, 1.0, curve: Curves.easeOut),
       ),
       child: FadeTransition(
         opacity: Tween<double>(begin: 1.0, end: 0.0).animate(

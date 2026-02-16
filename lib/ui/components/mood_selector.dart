@@ -15,23 +15,28 @@ class MoodSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: Spacing.xs),
-        itemCount: Mood.values.length,
-        separatorBuilder: (_, __) => const SizedBox(width: Spacing.sm),
-        itemBuilder: (context, index) {
-          final mood = Mood.values[index];
-          final isSelected = selected == mood;
-          return _MoodButton(
-            mood: mood,
-            isSelected: isSelected,
-            onTap: () => onChanged(isSelected ? null : mood),
-          );
-        },
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'How did you feel?',
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+        ),
+        const SizedBox(height: Spacing.md),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: Mood.values.map((mood) {
+            final isSelected = selected == mood;
+            return _MoodButton(
+              mood: mood,
+              isSelected: isSelected,
+              onTap: () => onChanged(isSelected ? null : mood),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

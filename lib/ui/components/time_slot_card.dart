@@ -70,51 +70,42 @@ class _TimeSlotCardState extends State<TimeSlotCard>
       opacity: _fadeAnim,
       child: SlideTransition(
         position: _slideAnim,
-        child: Material(
-          color: Colors.transparent,
+        child: Card(
+          elevation: filled ? 2 : 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          color: filled
+              ? cs.surface
+              : cs.surfaceContainerHighest.withValues(alpha: 0.5),
+          clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: widget.onTap,
             borderRadius: BorderRadius.circular(AppRadius.lg),
-            child: Ink(
-              decoration: BoxDecoration(
-                color: theme.cardTheme.color ?? cs.surface,
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-                border: Border.all(
-                  color: cs.outlineVariant,
-                  width: 1,
-                ),
-              ),
-              child: IntrinsicHeight(
-                child: Row(
-                  children: [
-                    // ── Mood accent bar ──
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeOutCubic,
-                      width: 4,
-                      decoration: BoxDecoration(
-                        color: moodColor,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(AppRadius.lg),
-                          bottomLeft: Radius.circular(AppRadius.lg),
-                        ),
-                      ),
+            child: Row(
+              children: [
+                // ── Mood accent bar ──
+                Container(
+                  width: 4,
+                  height: filled ? 90 : 72,
+                  decoration: BoxDecoration(
+                    color: moodColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(AppRadius.lg),
+                      bottomLeft: Radius.circular(AppRadius.lg),
                     ),
-                    // ── Content ──
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: Spacing.lg,
-                          vertical: Spacing.md,
-                        ),
-                        child: filled
-                            ? _buildFilledContent(context, entry!)
-                            : _buildEmptyContent(context),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                // ── Content ──
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(Spacing.lg),
+                    child: filled
+                        ? _buildFilledContent(context, entry!)
+                        : _buildEmptyContent(context),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -129,33 +120,39 @@ class _TimeSlotCardState extends State<TimeSlotCard>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Time range + mood emoji
+        // Time range
+        Text(
+          TimeUtils.formatTimeRange(widget.slot.startTime, widget.slot.endTime),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: cs.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: Spacing.xs),
+        // Mood emoji + description inline
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              TimeUtils.formatTimeRange(widget.slot.startTime, widget.slot.endTime),
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: cs.onSurfaceVariant,
+            if (entry.mood != null) ...[
+              Text(entry.mood!.emoji,
+                  style: theme.textTheme.titleLarge),
+              const SizedBox(width: Spacing.sm),
+            ],
+            Expanded(
+              child: Text(
+                entry.description.isEmpty
+                    ? 'No description'
+                    : entry.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurface,
+                ),
               ),
             ),
-            const Spacer(),
-            if (entry.mood != null)
-              Text(entry.mood!.emoji, style: const TextStyle(fontSize: 20)),
           ],
         ),
-        if (entry.description.isNotEmpty) ...[
-          const SizedBox(height: Spacing.xs),
-          Text(
-            entry.description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: cs.onSurface,
-            ),
-          ),
-        ],
         if (entry.tags.isNotEmpty) ...[
-          const SizedBox(height: Spacing.sm),
+          const SizedBox(height: Spacing.xs + Spacing.xxs),
           _buildTagChips(context, entry.tags),
         ],
       ],
@@ -227,20 +224,25 @@ class _TimeSlotCardState extends State<TimeSlotCard>
                   color: cs.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: Spacing.xxs),
-              Text(
-                'Tap to record this interval',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
+              const SizedBox(height: Spacing.xs),
+              Row(
+                children: [
+                  Icon(
+                    Icons.add,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                    size: 18,
+                  ),
+                  const SizedBox(width: Spacing.xs + Spacing.xxs),
+                  Text(
+                    'Tap to record this interval',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ),
-        Icon(
-          Icons.add_circle_outline,
-          color: cs.onSurfaceVariant.withValues(alpha: 0.4),
-          size: 24,
         ),
       ],
     );

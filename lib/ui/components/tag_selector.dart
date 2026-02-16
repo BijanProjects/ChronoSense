@@ -25,7 +25,6 @@ class TagSelector extends StatelessWidget {
         itemBuilder: (context, index) {
           final tag = ActivityTag.values[index];
           final isSelected = selected.contains(tag);
-          final tagColor = Color(tag.colorHex);
 
           return FilterChip(
             label: Text('${tag.icon} ${tag.label}'),
@@ -39,19 +38,18 @@ class TagSelector extends StatelessWidget {
               }
               onChanged(newList);
             },
-            selectedColor: tagColor.withValues(alpha: 0.15),
-            checkmarkColor: tagColor,
-            side: BorderSide(
-              color: isSelected ? tagColor : Theme.of(context).colorScheme.outlineVariant,
-              width: isSelected ? 1.5 : 1,
+            selectedColor: Theme.of(context).colorScheme.primary,
+            checkmarkColor: Theme.of(context).colorScheme.onPrimary,
+            showCheckmark: true,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: isSelected
-                      ? tagColor
+                      ? Theme.of(context).colorScheme.onPrimary
                       : Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 ),
-            showCheckmark: false,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),

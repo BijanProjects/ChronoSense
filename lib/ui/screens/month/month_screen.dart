@@ -95,7 +95,7 @@ class MonthScreen extends ConsumerWidget {
                     // ── Activity chart ──
                     if (state.insight!.tagFrequency.isNotEmpty) ...[
                       Text(
-                        'Top Activities',
+                        'Most Repeated Activities',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -303,7 +303,7 @@ class _StatColumn extends StatelessWidget {
         children: [
           Text(
             value,
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
             ),
@@ -344,7 +344,7 @@ class _MoodDistribution extends StatelessWidget {
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 2),
             padding: const EdgeInsets.symmetric(
-              vertical: Spacing.sm,
+              vertical: Spacing.md,
               horizontal: Spacing.xs,
             ),
             decoration: BoxDecoration(
@@ -357,7 +357,7 @@ class _MoodDistribution extends StatelessWidget {
                 const SizedBox(height: Spacing.xxs),
                 Text(
                   '${entry.value}',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: Color(entry.key.colorHex),
                         fontWeight: FontWeight.w600,
                       ),
@@ -391,7 +391,6 @@ class _ActivityChart extends StatelessWidget {
         final index = mapEntry.key;
         final entry = mapEntry.value;
         final fraction = maxVal > 0 ? entry.value / maxVal : 0.0;
-        final tagColor = Color(entry.key.colorHex);
 
         return TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: fraction),
@@ -423,26 +422,26 @@ class _ActivityChart extends StatelessWidget {
                   child: Stack(
                     children: [
                       Container(
-                        height: 24,
+                        height: 28,
                         decoration: BoxDecoration(
-                          color: cs.surfaceContainerHighest,
+                          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                       ),
                       FractionallySizedBox(
                         widthFactor: value.clamp(0.0, 1.0),
                         child: Container(
-                          height: 24,
+                          height: 28,
                           decoration: BoxDecoration(
-                            color: tagColor.withValues(alpha: 0.3),
+                            color: cs.primary.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: Spacing.sm),
+                          alignment: Alignment.centerLeft,
+                          padding: const EdgeInsets.only(left: Spacing.sm),
                           child: Text(
                             '${entry.value}',
                             style: theme.textTheme.labelSmall?.copyWith(
-                              color: tagColor,
+                              color: cs.onPrimary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),

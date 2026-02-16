@@ -165,13 +165,6 @@ class _EntryScreenState extends ConsumerState<EntryScreen>
                             const SizedBox(height: Spacing.xxl),
 
                             // Mood
-                            Text(
-                              'How did you feel?',
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: Spacing.md),
                             MoodSelector(
                               selected: state.mood,
                               onChanged: notifier.updateMood,

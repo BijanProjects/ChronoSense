@@ -41,7 +41,7 @@ class SettingsScreen extends ConsumerWidget {
             // ── SCHEDULE SECTION ──
             Text(
               'SCHEDULE',
-              style: theme.textTheme.labelMedium?.copyWith(
+              style: theme.textTheme.labelLarge?.copyWith(
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.2,
@@ -132,7 +132,7 @@ class SettingsScreen extends ConsumerWidget {
             // ── NOTIFICATIONS SECTION ──
             Text(
               'NOTIFICATIONS',
-              style: theme.textTheme.labelMedium?.copyWith(
+              style: theme.textTheme.labelLarge?.copyWith(
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.2,
@@ -149,6 +149,12 @@ class SettingsScreen extends ConsumerWidget {
               ),
               child: Row(
                 children: [
+                  Icon(
+                    Icons.notifications,
+                    color: cs.onSurface,
+                    size: 24,
+                  ),
+                  const SizedBox(width: Spacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,6 +178,18 @@ class SettingsScreen extends ConsumerWidget {
                   Switch(
                     value: prefs.notificationsEnabled,
                     onChanged: notifier.toggleNotifications,
+                    thumbColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return cs.onPrimary;
+                      }
+                      return null;
+                    }),
+                    trackColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.selected)) {
+                        return cs.primary;
+                      }
+                      return null;
+                    }),
                   ),
                 ],
               ),
@@ -182,7 +200,7 @@ class SettingsScreen extends ConsumerWidget {
             // ── ABOUT SECTION ──
             Text(
               'ABOUT',
-              style: theme.textTheme.labelMedium?.copyWith(
+              style: theme.textTheme.labelLarge?.copyWith(
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.2,
@@ -202,7 +220,7 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'ChronoSense',
-                    style: theme.textTheme.titleLarge?.copyWith(
+                    style: theme.textTheme.titleMedium?.copyWith(
                       color: cs.primary,
                       fontWeight: FontWeight.bold,
                     ),
@@ -216,10 +234,9 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: Spacing.sm),
                   Text(
-                    'Understand your time.\nReflect on your hours.\nLive intentionally.',
+                    'Understand your time. Reflect on your hours. Live intentionally.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
-                      fontStyle: FontStyle.italic,
                     ),
                     textAlign: TextAlign.center,
                   ),

@@ -61,10 +61,10 @@ abstract final class ChronoTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: colorScheme.surface,
-        selectedColor: colorScheme.primaryContainer,
+        selectedColor: colorScheme.primary,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -159,10 +159,10 @@ abstract final class ChronoTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: ChronoColors.darkCard,
-        selectedColor: colorScheme.primaryContainer,
+        selectedColor: colorScheme.primary,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(100),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
