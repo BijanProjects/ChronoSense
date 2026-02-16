@@ -219,7 +219,7 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Text(
-                    'ChronoSense',
+                    'Minovi',
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: cs.primary,
                       fontWeight: FontWeight.bold,

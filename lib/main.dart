@@ -25,18 +25,18 @@ void main() async {
     await NotificationService.instance.initialize();
   }
 
-  runApp(const ProviderScope(child: ChronoSenseApp()));
+  runApp(const ProviderScope(child: MinoviApp()));
 }
 
-class ChronoSenseApp extends ConsumerWidget {
-  const ChronoSenseApp({super.key});
+class MinoviApp extends ConsumerWidget {
+  const MinoviApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'ChronoSense',
+      title: 'Minovi',
       debugShowCheckedModeBanner: false,
       theme: ChronoTheme.light(),
       darkTheme: ChronoTheme.dark(),

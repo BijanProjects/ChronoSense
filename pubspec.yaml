@@ -1,5 +1,5 @@
 name: chronosense
-description: "Understand your time. Reflect on your hours. Live intentionally."
+description: "Minovi - Understand your time. Reflect on your hours. Live intentionally."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -45,3 +45,5 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/app_icon.png

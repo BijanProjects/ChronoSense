@@ -58,12 +58,38 @@ class _DayScreenState extends ConsumerState<DayScreen> {
             padding: const EdgeInsets.fromLTRB(
               Spacing.xl, Spacing.lg, Spacing.xl, Spacing.sm,
             ),
-            child: Text(
-              'ChronoSense',
-              style: theme.textTheme.headlineLarge?.copyWith(
-                color: cs.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    boxShadow: [
+                      BoxShadow(
+                        color: cs.primary.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: Spacing.md),
+                Text(
+                  'Minovi',
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
 
