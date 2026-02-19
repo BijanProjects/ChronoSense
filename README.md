@@ -1,9 +1,14 @@
 
-<p align="center">
-  <img src="assets/icon/app_icon.png" alt="Minovi App Icon" width="180" style="border-radius: 32px; box-shadow: 0 4px 24px #0003; margin-bottom: 12px;"/>
-</p>
-
-# Minovi
+<table>
+  <tr>
+    <td style="vertical-align:middle;">
+      <h1 style="font-size:3em; margin:0;">Minovi</h1>
+    </td>
+    <td style="width:200px; vertical-align:middle; text-align:center;">
+      <img src="assets/icon/app_icon.png" alt="Minovi App Icon" width="100" style="border-radius: 24px; box-shadow: 0 4px 24px #0003;"/>
+    </td>
+  </tr>
+</table>
 
 > Understand your time. Reflect on your hours. Live intentionally.
 
