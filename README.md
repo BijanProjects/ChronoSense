@@ -6,11 +6,12 @@ Minovi is a privacy-first, offline time-journaling app that divides your waking 
 
 ## UI Preview
 
-<div align="center" style="display: flex; flex-direction: row; gap: 16px;">
-	<img src="C:/Users/bijan/Downloads/Minova3.jpg" alt="Minovi UI 3" width="250" style="margin: 0 8px; border-radius: 12px; box-shadow: 0 2px 8px #0002;"/>
-	<img src="C:/Users/bijan/Downloads/Minova2.jpg" alt="Minovi UI 2" width="250" style="margin: 0 8px; border-radius: 12px; box-shadow: 0 2px 8px #0002;"/>
-	<img src="C:/Users/bijan/Downloads/Minova1.jpg" alt="Minovi UI 1" width="250" style="margin: 0 8px; border-radius: 12px; box-shadow: 0 2px 8px #0002;"/>
-</div>
+
+<p align="center">
+  <img src="assets/screenshots/Minova3.jpg" alt="Minovi UI 3" width="250" style="margin: 0 8px; border-radius: 12px; box-shadow: 0 2px 8px #0002;"/>
+  <img src="assets/screenshots/Minova2.jpg" alt="Minovi UI 2" width="250" style="margin: 0 8px; border-radius: 12px; box-shadow: 0 2px 8px #0002;"/>
+  <img src="assets/screenshots/Minova1.jpg" alt="Minovi UI 1" width="250" style="margin: 0 8px; border-radius: 12px; box-shadow: 0 2px 8px #0002;"/>
+</p>
 
 ---
 
