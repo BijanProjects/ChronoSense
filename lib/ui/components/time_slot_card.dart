@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:chronosense/domain/model/models.dart';
 import 'package:chronosense/ui/design/tokens.dart';
 import 'package:chronosense/util/time_utils.dart';
+import 'package:flutter/material.dart';
 
-/// Card showing a time slot — mood accent bar, description preview, tag chips.
-/// Staggered fade+slide animation on appearance.
-class TimeSlotCard extends StatefulWidget {
+/// Card showing a time slot with mood accent bar, description preview, and tags.
+class TimeSlotCard extends StatelessWidget {
   final TimeSlot slot;
   final int index;
   final VoidCallback onTap;
@@ -18,96 +17,49 @@ class TimeSlotCard extends StatefulWidget {
   });
 
   @override
-  State<TimeSlotCard> createState() => _TimeSlotCardState();
-}
-
-class _TimeSlotCardState extends State<TimeSlotCard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _fadeAnim;
-  late final Animation<Offset> _slideAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-
-    final delay = (widget.index * 0.06).clamp(0.0, 0.5);
-    final curved = CurvedAnimation(
-      parent: _controller,
-      curve: Interval(delay, 1.0, curve: Curves.easeOutCubic),
-    );
-
-    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(curved);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.08),
-      end: Offset.zero,
-    ).animate(curved);
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final filled = widget.slot.isFilled;
-    final entry = widget.slot.entry;
+    final filled = slot.isFilled;
+    final entry = slot.entry;
     final moodColor = entry?.moods.isNotEmpty == true
         ? Color(entry!.moods.first.colorHex)
         : cs.outlineVariant;
 
-    return FadeTransition(
-      opacity: _fadeAnim,
-      child: SlideTransition(
-        position: _slideAnim,
-        child: Card(
-          elevation: filled ? 2 : 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
-          color: filled
-              ? cs.surface
-              : cs.surfaceContainerHighest.withValues(alpha: 0.5),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            child: Row(
-              children: [
-                // ── Mood accent bar ──
-                Container(
-                  width: 4,
-                  height: filled ? 90 : 72,
-                  decoration: BoxDecoration(
-                    color: moodColor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(AppRadius.lg),
-                      bottomLeft: Radius.circular(AppRadius.lg),
-                    ),
-                  ),
+    return Card(
+      elevation: filled ? 2 : 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      color: filled
+          ? cs.surface
+          : cs.surfaceContainerHighest.withValues(alpha: 0.5),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: filled ? 90 : 72,
+              decoration: BoxDecoration(
+                color: moodColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(AppRadius.lg),
+                  bottomLeft: Radius.circular(AppRadius.lg),
                 ),
-                // ── Content ──
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(Spacing.lg),
-                    child: filled
-                        ? _buildFilledContent(context, entry!)
-                        : _buildEmptyContent(context),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(Spacing.lg),
+                child: filled
+                    ? _buildFilledContent(context, entry!)
+                    : _buildEmptyContent(context),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -120,15 +72,13 @@ class _TimeSlotCardState extends State<TimeSlotCard>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Time range
         Text(
-          TimeUtils.formatTimeRange(widget.slot.startTime, widget.slot.endTime),
+          TimeUtils.formatTimeRange(slot.startTime, slot.endTime),
           style: theme.textTheme.labelMedium?.copyWith(
             color: cs.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: Spacing.xs),
-        // Mood emojis + description inline
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -141,9 +91,7 @@ class _TimeSlotCardState extends State<TimeSlotCard>
             ],
             Expanded(
               child: Text(
-                entry.description.isEmpty
-                    ? 'No description'
-                    : entry.description,
+                entry.description.isEmpty ? 'No description' : entry.description,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -171,23 +119,25 @@ class _TimeSlotCardState extends State<TimeSlotCard>
       spacing: Spacing.xs,
       runSpacing: Spacing.xs,
       children: [
-        ...displayTags.map((tag) => Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Spacing.sm,
-                vertical: Spacing.xxs,
+        ...displayTags.map(
+          (tag) => Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.sm,
+              vertical: Spacing.xxs,
+            ),
+            decoration: BoxDecoration(
+              color: Color(tag.colorHex).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: Text(
+              '${tag.icon} ${tag.label}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Color(tag.colorHex),
+                fontWeight: FontWeight.w500,
               ),
-              decoration: BoxDecoration(
-                color: Color(tag.colorHex).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-              child: Text(
-                '${tag.icon} ${tag.label}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Color(tag.colorHex),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            )),
+            ),
+          ),
+        ),
         if (overflow > 0)
           Container(
             padding: const EdgeInsets.symmetric(
@@ -220,8 +170,7 @@ class _TimeSlotCardState extends State<TimeSlotCard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                TimeUtils.formatTimeRange(
-                    widget.slot.startTime, widget.slot.endTime),
+                TimeUtils.formatTimeRange(slot.startTime, slot.endTime),
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: cs.onSurfaceVariant,
                 ),
