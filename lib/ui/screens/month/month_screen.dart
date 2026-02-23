@@ -59,12 +59,10 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
     final velocity = details.primaryVelocity ?? 0;
     final screenW = MediaQuery.of(context).size.width;
     final threshold = screenW * 0.25;
-    final shouldCommit =
-        velocity.abs() > 300 || _dragOffset.abs() > threshold;
+    final shouldCommit = velocity.abs() > 300 || _dragOffset.abs() > threshold;
 
     if (shouldCommit) {
-      final forward =
-          velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
+      final forward = velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
       _animateTo(forward ? -screenW : screenW, onComplete: () {
         ref.read(monthProvider.notifier).navigateInstant(forward: forward);
         setState(() => _dragOffset = 0);
@@ -117,6 +115,11 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
     final state = ref.watch(monthProvider);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
+    final now = DateTime.now();
+    final isCurrentMonth =
+        state.month.year == now.year && state.month.month == now.month;
+    final currentMonthLabel =
+        isCurrentMonth ? 'This Month' : state.formattedMonth;
 
     return SafeArea(
       child: Column(
@@ -125,7 +128,10 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
           // ── App Header (fixed) ──
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              Spacing.xl, Spacing.lg, Spacing.xl, Spacing.sm,
+              Spacing.xl,
+              Spacing.lg,
+              Spacing.xl,
+              Spacing.sm,
             ),
             child: Row(
               children: [
@@ -165,14 +171,42 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
           // ── Monthly Overview Header (fixed) ──
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              Spacing.xl, Spacing.md, Spacing.xl, Spacing.xl,
+              Spacing.xl,
+              Spacing.md,
+              Spacing.xl,
+              Spacing.xl,
             ),
-            child: Text(
-              'Monthly Overview',
-              style: theme.textTheme.headlineLarge?.copyWith(
-                color: cs.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Monthly Overview',
+                  style: theme.textTheme.headlineLarge?.copyWith(
+                    color: cs.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: Spacing.sm),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      currentMonthLabel,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (!isCurrentMonth)
+                      TextButton.icon(
+                        onPressed: () =>
+                            ref.read(monthProvider.notifier).goToCurrentMonth(),
+                        icon: const Icon(Icons.my_location_outlined, size: 18),
+                        label: const Text('Go to This Month'),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
 
@@ -193,23 +227,23 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
                           _positioned(
                             offset: _dragOffset - w,
                             width: w,
-                            child: _buildMonthPanel(
-                                state.prevMonth!, theme, cs, showHeader: false),
+                            child: _buildMonthPanel(state.prevMonth!, theme, cs,
+                                showHeader: false),
                           ),
                         // Current month
                         _positioned(
                           offset: _dragOffset,
                           width: w,
-                          child: _buildMonthPanel(
-                              state, theme, cs, isCenter: true, showHeader: false),
+                          child: _buildMonthPanel(state, theme, cs,
+                              isCenter: true, showHeader: false),
                         ),
                         // Next month
                         if (state.nextMonth != null)
                           _positioned(
                             offset: _dragOffset + w,
                             width: w,
-                            child: _buildMonthPanel(
-                                state.nextMonth!, theme, cs, showHeader: false),
+                            child: _buildMonthPanel(state.nextMonth!, theme, cs,
+                                showHeader: false),
                           ),
                       ],
                     ),
@@ -271,9 +305,8 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed: isCenter
-                    ? () => _navigateMonth(forward: false)
-                    : null,
+                onPressed:
+                    isCenter ? () => _navigateMonth(forward: false) : null,
               ),
               Text(
                 monthState.formattedMonth,
@@ -283,9 +316,8 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed: isCenter
-                    ? () => _navigateMonth(forward: true)
-                    : null,
+                onPressed:
+                    isCenter ? () => _navigateMonth(forward: true) : null,
               ),
             ],
           ),
@@ -294,8 +326,7 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
           // ── Calendar grid ──
           _CalendarGrid(
             month: monthState.month,
-            daysWithEntries:
-                monthState.insight?.daysWithEntries ?? {},
+            daysWithEntries: monthState.insight?.daysWithEntries ?? {},
             onDayTap: isCenter ? widget.onDayTap : null,
           ),
           const SizedBox(height: Spacing.xxl),
@@ -304,7 +335,6 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
               monthState.insight!.totalEntries > 0) ...[
             _SummaryCard(insight: monthState.insight!),
             const SizedBox(height: Spacing.xl),
-
             if (monthState.insight!.moodFrequency.isNotEmpty) ...[
               Text(
                 'Mood Distribution',
@@ -313,11 +343,9 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
                 ),
               ),
               const SizedBox(height: Spacing.md),
-              _MoodDistribution(
-                  moods: monthState.insight!.moodFrequency),
+              _MoodDistribution(moods: monthState.insight!.moodFrequency),
               const SizedBox(height: Spacing.xl),
             ],
-
             if (monthState.insight!.tagFrequency.isNotEmpty) ...[
               Text(
                 'Most Repeated Activities',
@@ -326,8 +354,7 @@ class _MonthScreenState extends ConsumerState<MonthScreen>
                 ),
               ),
               const SizedBox(height: Spacing.md),
-              _ActivityChart(
-                  tags: monthState.insight!.tagFrequency),
+              _ActivityChart(tags: monthState.insight!.tagFrequency),
             ],
           ] else
             _buildEmptyState(context),
@@ -629,7 +656,8 @@ class _ActivityChart extends StatelessWidget {
                   width: 120,
                   child: Row(
                     children: [
-                      Text(entry.key.icon, style: const TextStyle(fontSize: 16)),
+                      Text(entry.key.icon,
+                          style: const TextStyle(fontSize: 16)),
                       const SizedBox(width: Spacing.xs),
                       Flexible(
                         child: Text(
@@ -649,7 +677,8 @@ class _ActivityChart extends StatelessWidget {
                       Container(
                         height: 28,
                         decoration: BoxDecoration(
-                          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                          color:
+                              cs.surfaceContainerHighest.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                       ),

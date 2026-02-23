@@ -56,8 +56,19 @@ class MonthNotifier extends Notifier<MonthUiState> {
   }
 
   static const _months = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December'
   ];
 
   MonthUiState _buildMonthState({
@@ -91,8 +102,7 @@ class MonthNotifier extends Notifier<MonthUiState> {
     final results = await Future.wait([
       journalRepo.getEntriesForDateRange(
           prevM, DateTime(prevM.year, prevM.month + 1, 0)),
-      journalRepo.getEntriesForDateRange(
-          _currentMonth,
+      journalRepo.getEntriesForDateRange(_currentMonth,
           DateTime(_currentMonth.year, _currentMonth.month + 1, 0)),
       journalRepo.getEntriesForDateRange(
           nextM, DateTime(nextM.year, nextM.month + 1, 0)),
@@ -119,11 +129,9 @@ class MonthNotifier extends Notifier<MonthUiState> {
   void navigateInstant({required bool forward}) {
     final adjacent = forward ? state.nextMonth : state.prevMonth;
     if (forward) {
-      _currentMonth =
-          DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
     } else {
-      _currentMonth =
-          DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
     }
     if (adjacent != null) {
       state = adjacent;
@@ -138,6 +146,12 @@ class MonthNotifier extends Notifier<MonthUiState> {
 
   void nextMonth() {
     _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
+    _load();
+  }
+
+  void goToCurrentMonth() {
+    final now = DateTime.now();
+    _currentMonth = DateTime(now.year, now.month, 1);
     _load();
   }
 

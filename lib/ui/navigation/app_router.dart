@@ -158,9 +158,24 @@ class _AppShell extends StatelessWidget {
   const _AppShell({required this.child});
 
   static const _tabs = [
-    (path: '/day', label: 'Today', iconFilled: Icons.today, iconOutlined: Icons.today_outlined),
-    (path: '/month', label: 'Month', iconFilled: Icons.calendar_month, iconOutlined: Icons.calendar_month_outlined),
-    (path: '/settings', label: 'Settings', iconFilled: Icons.settings, iconOutlined: Icons.settings_outlined),
+    (
+      path: '/day',
+      label: 'Day',
+      iconFilled: Icons.today,
+      iconOutlined: Icons.today_outlined
+    ),
+    (
+      path: '/month',
+      label: 'Month',
+      iconFilled: Icons.calendar_month,
+      iconOutlined: Icons.calendar_month_outlined
+    ),
+    (
+      path: '/settings',
+      label: 'Settings',
+      iconFilled: Icons.settings,
+      iconOutlined: Icons.settings_outlined
+    ),
   ];
 
   int _currentIndex(BuildContext context) {

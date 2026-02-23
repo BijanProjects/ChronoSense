@@ -77,11 +77,29 @@ class DayNotifier extends Notifier<DayUiState> {
   }
 
   static const _months = [
-    '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    '',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
   ];
   static const _weekdays = [
-    '', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'
+    '',
+    'Mon',
+    'Tue',
+    'Wed',
+    'Thu',
+    'Fri',
+    'Sat',
+    'Sun'
   ];
 
   DayUiState _buildDayState({
@@ -98,9 +116,8 @@ class DayNotifier extends Notifier<DayUiState> {
     final today = DateTime(now.year, now.month, now.day);
     final selected = DateTime(date.year, date.month, date.day);
     final isToday = selected == today;
-    final activeIndex = isToday
-        ? IntervalEngine.findActiveSlotIndex(slots, now)
-        : -1;
+    final activeIndex =
+        isToday ? IntervalEngine.findActiveSlotIndex(slots, now) : -1;
 
     final filled = slots.where((s) => s.isFilled).length;
     final total = slots.length;
@@ -148,12 +165,12 @@ class DayNotifier extends Notifier<DayUiState> {
       journalRepo.getEntriesForDate(nextDate),
     ]);
 
-    final prev = _buildDayState(
-        prefs: prefs, entries: results[0], date: prevDate);
-    final current = _buildDayState(
-        prefs: prefs, entries: results[1], date: _selectedDate);
-    final next = _buildDayState(
-        prefs: prefs, entries: results[2], date: nextDate);
+    final prev =
+        _buildDayState(prefs: prefs, entries: results[0], date: prevDate);
+    final current =
+        _buildDayState(prefs: prefs, entries: results[1], date: _selectedDate);
+    final next =
+        _buildDayState(prefs: prefs, entries: results[2], date: nextDate);
 
     state = DayUiState(
       formattedDate: current.formattedDate,
@@ -196,6 +213,12 @@ class DayNotifier extends Notifier<DayUiState> {
 
   void goToDate(DateTime date) {
     _selectedDate = date;
+    _load();
+  }
+
+  void goToToday() {
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
     _load();
   }
 

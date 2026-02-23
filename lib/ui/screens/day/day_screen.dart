@@ -62,12 +62,10 @@ class _DayScreenState extends ConsumerState<DayScreen>
     final velocity = details.primaryVelocity ?? 0;
     final screenW = MediaQuery.of(context).size.width;
     final threshold = screenW * 0.25;
-    final shouldCommit =
-        velocity.abs() > 300 || _dragOffset.abs() > threshold;
+    final shouldCommit = velocity.abs() > 300 || _dragOffset.abs() > threshold;
 
     if (shouldCommit) {
-      final forward =
-          velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
+      final forward = velocity.abs() > 300 ? velocity < 0 : _dragOffset < 0;
       _animateTo(forward ? -screenW : screenW, onComplete: () {
         ref.read(dayProvider.notifier).navigateInstant(forward: forward);
         setState(() => _dragOffset = 0);
@@ -113,7 +111,6 @@ class _DayScreenState extends ConsumerState<DayScreen>
     _settling = false;
   }
 
-
   // ── Build ──
 
   @override
@@ -121,7 +118,7 @@ class _DayScreenState extends ConsumerState<DayScreen>
     final state = ref.watch(dayProvider);
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-
+    final currentDayLabel = state.isToday ? 'Today' : state.formattedDate;
 
     return SafeArea(
       child: Column(
@@ -130,38 +127,66 @@ class _DayScreenState extends ConsumerState<DayScreen>
           // ── Header (fixed — does not move with swipe) ──
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              Spacing.xl, Spacing.lg, Spacing.xl, Spacing.sm,
+              Spacing.xl,
+              Spacing.lg,
+              Spacing.xl,
+              Spacing.sm,
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    boxShadow: [
-                      BoxShadow(
-                        color: cs.primary.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        boxShadow: [
+                          BoxShadow(
+                            color: cs.primary.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: Image.asset(
-                      'assets/icon/app_icon.png',
-                      fit: BoxFit.cover,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                        child: Image.asset(
+                          'assets/icon/app_icon.png',
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: Spacing.md),
+                    Text(
+                      'Minovi',
+                      style: theme.textTheme.headlineLarge?.copyWith(
+                        color: cs.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: Spacing.md),
-                Text(
-                  'Minovi',
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                const SizedBox(height: Spacing.sm),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      currentDayLabel,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (!state.isToday)
+                      TextButton.icon(
+                        onPressed: () =>
+                            ref.read(dayProvider.notifier).goToToday(),
+                        icon: const Icon(Icons.my_location_outlined, size: 18),
+                        label: const Text('Go to Today'),
+                      ),
+                  ],
                 ),
               ],
             ),
@@ -186,23 +211,21 @@ class _DayScreenState extends ConsumerState<DayScreen>
                           _positioned(
                             offset: _dragOffset - w,
                             width: w,
-                            child: _buildDayPanel(
-                                state.prevDay!, theme, cs),
+                            child: _buildDayPanel(state.prevDay!, theme, cs),
                           ),
                         // Current day
                         _positioned(
                           offset: _dragOffset,
                           width: w,
-                          child: _buildDayPanel(
-                              state, theme, cs, isCenter: true),
+                          child:
+                              _buildDayPanel(state, theme, cs, isCenter: true),
                         ),
                         // Next day
                         if (state.nextDay != null)
                           _positioned(
                             offset: _dragOffset + w,
                             width: w,
-                            child: _buildDayPanel(
-                                state.nextDay!, theme, cs),
+                            child: _buildDayPanel(state.nextDay!, theme, cs),
                           ),
                       ],
                     ),
@@ -246,8 +269,7 @@ class _DayScreenState extends ConsumerState<DayScreen>
             children: [
               IconButton(
                 icon: const Icon(Icons.chevron_left),
-                onPressed:
-                    isCenter ? () => _navigateDay(forward: false) : null,
+                onPressed: isCenter ? () => _navigateDay(forward: false) : null,
                 style: IconButton.styleFrom(
                   foregroundColor: cs.onSurface,
                 ),
@@ -275,8 +297,7 @@ class _DayScreenState extends ConsumerState<DayScreen>
               ),
               IconButton(
                 icon: const Icon(Icons.chevron_right),
-                onPressed:
-                    isCenter ? () => _navigateDay(forward: true) : null,
+                onPressed: isCenter ? () => _navigateDay(forward: true) : null,
                 style: IconButton.styleFrom(
                   foregroundColor: cs.onSurface,
                 ),
@@ -311,8 +332,7 @@ class _DayScreenState extends ConsumerState<DayScreen>
               : dayState.timeSlots.isEmpty
                   ? _buildEmptyState(context)
                   : ListView.separated(
-                      controller:
-                          isCenter ? _scrollController : null,
+                      controller: isCenter ? _scrollController : null,
                       padding: const EdgeInsets.symmetric(
                         horizontal: Spacing.lg,
                         vertical: Spacing.sm,
